@@ -15,7 +15,7 @@ public class Door : MonoBehaviour
     {
         if(other.CompareTag("Player"))
         {
-            Debug.Log("문이 열려야 한다.");
+            //Debug.Log("문이 열려야 한다.");
             anim.SetBool("IsOpen", true);
         }
 
@@ -25,7 +25,7 @@ public class Door : MonoBehaviour
     {
         if(other.CompareTag("Player"))
         {
-            Debug.Log("문이 닫혀야 한다.");
+            //Debug.Log("문이 닫혀야 한다.");
             anim.SetBool("IsOpen", false);
         }
     }
