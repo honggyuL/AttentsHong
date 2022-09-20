@@ -17,12 +17,12 @@ public class DoorSwitch : MonoBehaviour, IUseableObject
     /// </summary>
     bool switchOn = false;
 
-    Animation anim;
+    Animator anim;
 
     
     private void Awake()
     {
-        anim = GetComponent<Animation>();
+        anim = GetComponent<Animator>();
     }
 
     /// <summary>
@@ -31,7 +31,7 @@ public class DoorSwitch : MonoBehaviour, IUseableObject
     public void Use()
     {
         switchOn = !switchOn;   // 스위치 on/off 서로 전환
-        anim.SetBool ("SwitchOn", switchOn);    // switchOn에 맞게 애니메이션 재생
+        anim.SetBool("SwitchOn", switchOn);    // switchOn에 맞게 애니메이션 재생
         if (switchOn)
         {
             // 스위치를 켰으면targetDoor를 연다.

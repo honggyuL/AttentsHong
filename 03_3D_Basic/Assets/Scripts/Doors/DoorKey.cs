@@ -4,15 +4,17 @@ using UnityEngine;
 
 public class DoorKey : MonoBehaviour
 {
-    // Start is called before the first frame update
-    void Start()
-    {
-        
-    }
+    public Door targetDoor;
 
-    // Update is called once per frame
-    void Update()
+    private void OnTriggerEnter(Collider other)
     {
-        
+        if (other.CompareTag("Player"))
+        {
+            if(targetDoor != null)
+            {
+                targetDoor.Open();
+            }
+            Destroy(this.gameObject);
+        }
     }
 }
