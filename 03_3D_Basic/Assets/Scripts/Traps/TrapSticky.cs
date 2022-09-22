@@ -11,6 +11,13 @@ public class TrapSticky : TrapBase
     float originalSpeed = 0.0f;
     Player player = null;
 
+    ParticleSystem ps;
+
+    private void Awake()
+    {
+        ps = transform.GetChild(1).GetComponent<ParticleSystem>();
+    }
+
     protected override void TrapActivate(GameObject target)
     {
         if(player == null)
@@ -18,6 +25,7 @@ public class TrapSticky : TrapBase
             player = target.GetComponent<Player>();
             originalSpeed = player.moveSpeed;
             player.moveSpeed *= speedDebuff;
+            ps.Play();
         }
         else
         {
