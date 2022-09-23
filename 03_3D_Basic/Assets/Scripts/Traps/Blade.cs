@@ -8,7 +8,7 @@ public class Blade : MonoBehaviour
 {
     public WayPoints waypoints;         // 따라다닐 웨이포인트들을 가지고 있는 클래스
     public float moveSpeed = 1.0f;      // 칼날 이동 속도
-    public float spinSpeed = 1.0f;
+    public float spinSpeed = 720.0f;
 
     Rigidbody rigid;
 
