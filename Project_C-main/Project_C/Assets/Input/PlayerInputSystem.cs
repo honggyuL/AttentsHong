@@ -53,6 +53,15 @@ public partial class @PlayerInputSystem : IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Attack"",
+                    ""type"": ""Button"",
+                    ""id"": ""acc7edb2-9d78-4aca-861a-3d291f0404ca"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -132,6 +141,17 @@ public partial class @PlayerInputSystem : IInputActionCollection2, IDisposable
                     ""action"": ""Dive"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""767566b9-78ac-4f03-bf6a-fbf43a6fb72e"",
+                    ""path"": ""<Mouse>/leftButton"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Keyboard&Mouse"",
+                    ""action"": ""Attack"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         }
@@ -160,6 +180,7 @@ public partial class @PlayerInputSystem : IInputActionCollection2, IDisposable
         m_Player_Test = m_Player.FindAction("Test", throwIfNotFound: true);
         m_Player_Move = m_Player.FindAction("Move", throwIfNotFound: true);
         m_Player_Dive = m_Player.FindAction("Dive", throwIfNotFound: true);
+        m_Player_Attack = m_Player.FindAction("Attack", throwIfNotFound: true);
     }
 
     public void Dispose()
@@ -222,6 +243,7 @@ public partial class @PlayerInputSystem : IInputActionCollection2, IDisposable
     private readonly InputAction m_Player_Test;
     private readonly InputAction m_Player_Move;
     private readonly InputAction m_Player_Dive;
+    private readonly InputAction m_Player_Attack;
     public struct PlayerActions
     {
         private @PlayerInputSystem m_Wrapper;
@@ -229,6 +251,7 @@ public partial class @PlayerInputSystem : IInputActionCollection2, IDisposable
         public InputAction @Test => m_Wrapper.m_Player_Test;
         public InputAction @Move => m_Wrapper.m_Player_Move;
         public InputAction @Dive => m_Wrapper.m_Player_Dive;
+        public InputAction @Attack => m_Wrapper.m_Player_Attack;
         public InputActionMap Get() { return m_Wrapper.m_Player; }
         public void Enable() { Get().Enable(); }
         public void Disable() { Get().Disable(); }
@@ -247,6 +270,9 @@ public partial class @PlayerInputSystem : IInputActionCollection2, IDisposable
                 @Dive.started -= m_Wrapper.m_PlayerActionsCallbackInterface.OnDive;
                 @Dive.performed -= m_Wrapper.m_PlayerActionsCallbackInterface.OnDive;
                 @Dive.canceled -= m_Wrapper.m_PlayerActionsCallbackInterface.OnDive;
+                @Attack.started -= m_Wrapper.m_PlayerActionsCallbackInterface.OnAttack;
+                @Attack.performed -= m_Wrapper.m_PlayerActionsCallbackInterface.OnAttack;
+                @Attack.canceled -= m_Wrapper.m_PlayerActionsCallbackInterface.OnAttack;
             }
             m_Wrapper.m_PlayerActionsCallbackInterface = instance;
             if (instance != null)
@@ -260,6 +286,9 @@ public partial class @PlayerInputSystem : IInputActionCollection2, IDisposable
                 @Dive.started += instance.OnDive;
                 @Dive.performed += instance.OnDive;
                 @Dive.canceled += instance.OnDive;
+                @Attack.started += instance.OnAttack;
+                @Attack.performed += instance.OnAttack;
+                @Attack.canceled += instance.OnAttack;
             }
         }
     }
@@ -278,5 +307,6 @@ public partial class @PlayerInputSystem : IInputActionCollection2, IDisposable
         void OnTest(InputAction.CallbackContext context);
         void OnMove(InputAction.CallbackContext context);
         void OnDive(InputAction.CallbackContext context);
+        void OnAttack(InputAction.CallbackContext context);
     }
 }
