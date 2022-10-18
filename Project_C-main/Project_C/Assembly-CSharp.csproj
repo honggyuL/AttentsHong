@@ -56,9 +56,11 @@
     <Analyzer Include="C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\Extensions\Microsoft\Visual Studio Tools for Unity\Analyzers\Microsoft.Unity.Analyzers.dll" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Assets\Scripts\Player.cs" />
+    <Compile Include="Assets\Scripts\Archer\Player.cs" />
     <Compile Include="Assets\Input\PlayerInputSystem.cs" />
+    <Compile Include="Assets\Scripts\Archer\Attack.cs" />
     <Compile Include="Assets\Scripts\Cam.cs" />
+    <Compile Include="Assets\Scripts\Warrior\Warrior.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="UnityEngine">
