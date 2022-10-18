@@ -4,6 +4,10 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 
+#if UNITY_EDITOR
+using UnityEditor;  // UNITY_EDITOR라는 전처리기가 설정되어있을 때만 실행버전에 넣어라
+#endif
+
 [RequireComponent(typeof(Rigidbody))]   // 필수적으로 필요한 컴포넌트가 있을 때 자동으로 넣어주는 유니티 속성(Attribute)
 [RequireComponent(typeof(Animator))]
 public class Enemy : MonoBehaviour
@@ -20,12 +24,22 @@ public class Enemy : MonoBehaviour
     /// </summary>
     Transform moveTarget;
 
+    // -----------------------------------------------------------------------------------------------------------
+
     // 이동 관련 변수 -------------------------------------------------------------------------------------------
 
     /// <summary>
     /// 적의 이동 속도
     /// </summary>
     public float moveSpeed = 3.0f;
+
+    // -----------------------------------------------------------------------------------------------------------
+
+    // 추적 관련 변수 -------------------------------------------------------------------------------------------
+    public float sightRange = 10.0f;
+    public float sightHalfAngle = 50.0f;
+
+    // -----------------------------------------------------------------------------------------------------------
 
     // 상태 관련 변수 --------------------------------------------------------------------------------------------
     EnemyState state;               // 현재 적의 상태(대기 상태냐 순찰 상태냐)
@@ -180,5 +194,102 @@ public class Enemy : MonoBehaviour
     void Update_wait()
     {
         WaitTimer -= Time.fixedDeltaTime;   // 시간 지속적으로 감소
+    }
+
+    /// <summary>
+    /// 플레이어를 감지하는 함수
+    /// </summary>
+    /// <returns>적이 플레이어를 감지하면 true. 아니면 false</returns>
+    bool SearchPlayer()
+    {
+        bool result = false;
+
+        // GetMask : 여러개 찾을 수 있다.
+        // 특정 범위안에 존재하는지 확인
+        Collider[] colliders = Physics.OverlapSphere(transform.position, sightRange, LayerMask.GetMask("Player"));
+        if( colliders.Length > 0)
+        {
+            // Player가 sightRange 안에 있다.
+
+            Vector3 playerPos = colliders[0].transform.position;    // 플레이어의 위치
+            Vector3 toPlayerDir = playerPos - transform.position;   // 플레이어로 가는 방향
+            
+            // 시야각 안에 플레이어가 있다.
+            if(IsInSightAngle(toPlayerDir))
+            {
+                // 시야각 안에 player가 있다.
+
+                // 시야가 다른 물체로 인해 막혔는지 확인
+                if (IsSightBlock(toPlayerDir))
+                {
+                    // 시야가 다른 물체로 인해 막히지 않았다.
+                    result = true;
+                }
+            }
+        }
+        // LayerMask.GetMask("Player", "Water", "UI");        // 리턴 2^6+2^4+2^5 = 64+16+32 = 112
+        // LayerMask.NameToLayer("Player");    // 리턴 6
+        return result;
+    }
+
+    /// <summary>
+    /// 대상이 시야각안에 들어와 있는지 확인하는 함수
+    /// </summary>
+    /// <param name="toTargetDir">대상으로 가는 방향 벡터</param>
+    /// <returns>true면 대상이 시야각 안에 있다. false면 없다.</returns>
+    bool IsInSightAngle(Vector3 toTargetDir)
+    {
+        float angle = Vector3.Angle(transform.forward, toTargetDir);    // forward 벡터와 플레이어로 가는 방향 벡터의 사이각 구하기
+        return (sightHalfAngle > angle);
+    }
+
+    /// <summary>
+    /// 플레이어를 바라보는 시야가 막혔는지 확인하는 함수
+    /// </summary>
+    /// <param name="toTargetDir">대상으로 가는 방향 벡터</param>
+    /// <returns>true면 시야가 막혀있다. false면 아니다.</returns>
+    bool IsSightBlock(Vector3 toTargetDir)
+    {
+        bool result = true;
+        // 레이 만들기 : 시작점 = 적의 위치 + 적의 눈높이, 방향 = 적에서 플레이어로 가는 방향
+        Ray ray = new(transform.position + transform.up * 0.5f, toTargetDir);
+        if (Physics.Raycast(ray, out RaycastHit hit, sightRange))
+        {
+            // 레이에 부딪친 컬라이더가 있다.
+            if (hit.collider.CompareTag("Player"))
+            {
+                // 그 컬라이더가 플레이어이다.
+                result = false;
+            }
+        }
+        return result;
+    }
+
+    public void Test()
+    {
+        SearchPlayer();
+    }
+
+    private void OnDrawGizmos()
+    {
+#if UNITY_EDITOR
+        Handles.color = Color.green;    // 기본적으로 녹색
+        Handles.DrawWireDisc(transform.position, transform.up, sightRange);     // 시야 반경만큼 원 그리기
+        if ( SearchPlayer()) // 플레이어가 보이는지 여부에 따라 색상 지정
+        {
+            Handles.color = Color.red;      // 보이면 깔간색
+        }
+        
+        Vector3 forward = transform.forward * sightRange;                                // 앞쪽 방향으로 시야 범위만큼 가는 백터
+        Handles.DrawDottedLine(transform.position, transform.position + forward, 2.0f);  // 중심선 그리기
+
+        Quaternion q1 = Quaternion.AngleAxis(-sightHalfAngle, transform.up);    // up벡터를 축으로 반시계방향으로 sightHalfAngle만큼 회전
+        Quaternion q2 = Quaternion.AngleAxis(sightHalfAngle, transform.up);     // up벡터를 축으로 시계방향으로 sightHalfAngle만큼 회전
+
+        Handles.DrawLine(transform.position, transform.position + q1 * forward);    // 중심선을 반시계방향으로 회전시켜서 그리기
+        Handles.DrawLine(transform.position, transform.position + q2 * forward);    // 중심선을 시계방향으로 회전시켜서 그리기
+
+        Handles.DrawWireArc(transform.position, transform.up, q1 * forward, sightHalfAngle * 2, sightRange, 5.0f);  // 호 그리기
+#endif
     }
 }
