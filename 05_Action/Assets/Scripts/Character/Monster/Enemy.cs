@@ -22,7 +22,7 @@ public class Enemy : MonoBehaviour
     /// <summary>
     /// 지금 적이 이동할 목표 지점
     /// </summary>
-    Transform moveTarget;
+    Transform waypointTarget;
 
     // -----------------------------------------------------------------------------------------------------------
 
@@ -36,13 +36,25 @@ public class Enemy : MonoBehaviour
     // -----------------------------------------------------------------------------------------------------------
 
     // 추적 관련 변수 -------------------------------------------------------------------------------------------
+    /// <summary>
+    /// 시야 범위
+    /// </summary>
     public float sightRange = 10.0f;
+
+    /// <summary>
+    /// 시야각의 절반
+    /// </summary>
     public float sightHalfAngle = 50.0f;
+
+    /// <summary>
+    /// 추적할 플레이어의 트랜스폼
+    /// </summary>
+    Transform chaseTarget;
 
     // -----------------------------------------------------------------------------------------------------------
 
     // 상태 관련 변수 --------------------------------------------------------------------------------------------
-    EnemyState state;               // 현재 적의 상태(대기 상태냐 순찰 상태냐)
+    EnemyState state = EnemyState.Patrol;               // 현재 적의 상태(대기 상태냐 순찰 상태냐)
     public float waitTime = 1.0f;   // 목적지에 도착했을 때 기다리는 시간
     float waitTimer;                // 남아있는 기다려야 하는 시간
     // -----------------------------------------------------------------------------------------------------------
@@ -60,7 +72,8 @@ public class Enemy : MonoBehaviour
     protected enum EnemyState
     {
         Wait = 0,   // 대기 상태
-        Patrol      // 순찰 상태
+        Patrol,     // 순찰 상태
+        Chase       // 추적 상태
     }
     // -----------------------------------------------------------------------------------------------------------
 
@@ -74,14 +87,14 @@ public class Enemy : MonoBehaviour
     // 프로퍼티 --------------------------------------------------------------------------------------------------
 
     /// <summary>
-    /// 이동할 목적지를 나타내는 프로퍼티
+    /// 이동할 목적지(웨이포인트)를 나타내는 프로퍼티
     /// </summary>
-    protected Transform MoveTarget
+    protected Transform WaypointTarget
     {
-        get => moveTarget;
+        get => waypointTarget;
         set
         { 
-            moveTarget = value;
+            waypointTarget = value;
             //lookDir = (moveTarget.position - transform.position).normalized;    // lookDir도 함께 갱신
         }
     }
@@ -94,32 +107,31 @@ public class Enemy : MonoBehaviour
         get => state;
         set
         {
-            //switch (state)  // 이전 상태(상태를 나가면서 해야 할 일 처리)
-            //{
-            //    case EnemyState.Wait:
-            //        break;
-            //    case EnemyState.Patrol:
-            //        break;
-            //    default:
-            //        break;
-            //}
-            state = value;  // 새로운 상태로 변경
-            switch (state)  // 새로운 상태(새로운 상태로 들어가면서 해야 할 일 처리)
+            if(state != value)
             {
-                case EnemyState.Wait:
-                    agent.isStopped = true;
-                    waitTimer = waitTime;       // 타이머 초기화
-                    anim.SetTrigger("Stop");    // 가만히 있는 애니메이션 재생
-                    stateUpdate = Update_wait;  // FixedUpdate에서 실행될 델리게이트 변경
-                    break;
-                case EnemyState.Patrol:
-                    agent.isStopped = false;
-                    agent.SetDestination(MoveTarget.position);
-                    anim.SetTrigger("Move");    // 이동하는 애니메이션 재생
-                    stateUpdate = Update_Patrol;// FixedUpdate에서 실행될 델리게이트 변경
-                    break;
-                default:
-                    break;
+                state = value;  // 새로운 상태로 변경
+                switch (state)  // 새로운 상태(새로운 상태로 들어가면서 해야 할 일 처리)
+                {
+                    case EnemyState.Wait:
+                        agent.isStopped = true;
+                        waitTimer = waitTime;       // 타이머 초기화
+                        anim.SetTrigger("Stop");    // 가만히 있는 애니메이션 재생
+                        stateUpdate = Update_wait;  // FixedUpdate에서 실행될 델리게이트 변경
+                        break;
+                    case EnemyState.Patrol:
+                        agent.isStopped = false;
+                        agent.SetDestination(WaypointTarget.position);
+                        anim.SetTrigger("Move");    // 이동하는 애니메이션 재생
+                        stateUpdate = Update_Patrol;// FixedUpdate에서 실행될 델리게이트 변경
+                        break;
+                    case EnemyState.Chase:
+                        agent.isStopped = false;
+                        anim.SetTrigger("Move");    // 이동하는 애니메이션 재생
+                        stateUpdate = Update_Chase; // FixedUpdate에서 실행될 델리게이트 변경
+                        break;
+                    default:
+                        break;
+                }
             }
         }
     }
@@ -155,11 +167,11 @@ public class Enemy : MonoBehaviour
         // waypoints가 없을 때를 대비한 코드
         if(waypoints != null)
         {
-            MoveTarget = waypoints.Current;
+            WaypointTarget = waypoints.Current;
         }
         else
         {
-            MoveTarget = transform;
+            WaypointTarget = transform;
         }
 
         // 값 초기화 작업
@@ -169,6 +181,11 @@ public class Enemy : MonoBehaviour
 
     private void FixedUpdate()
     {
+        // 매번 추적대상을 찾기
+        if (SearchPlayer())
+        {
+            State = EnemyState.Chase;   // 추적 대상이 있으면 추적 상태로 변경
+        }
         stateUpdate();
     }
 
@@ -183,7 +200,7 @@ public class Enemy : MonoBehaviour
         // agent.stoppingDistance : 도착지점에 도착했다고 인정되는 거리
         if (!agent.pathPending && agent.remainingDistance <= agent.stoppingDistance)    // 경로 계싼이 완료됬고 아직 도착지점으로 인정되는 거리까지 이동하지 않았다.
         {
-            MoveTarget = waypoints.MoveNext();
+            WaypointTarget = waypoints.MoveNext();
             State = EnemyState.Wait;
         }
     }
@@ -197,12 +214,29 @@ public class Enemy : MonoBehaviour
     }
 
     /// <summary>
+    /// Chase 상태일 때 실행될 업데이트 함수
+    /// </summary>
+    private void Update_Chase()
+    {
+        // 추적 대상이 있는지 확인
+        if(chaseTarget != null)
+        {
+            agent.SetDestination(chaseTarget.position); // 추적대상이 있으면 추적 대상의 위치로 이동
+        }
+        else
+        {
+            State = EnemyState.Wait;    // 추적 대상이 없으면 잠시 대기
+        }
+    }
+
+    /// <summary>
     /// 플레이어를 감지하는 함수
     /// </summary>
     /// <returns>적이 플레이어를 감지하면 true. 아니면 false</returns>
     bool SearchPlayer()
     {
         bool result = false;
+        chaseTarget = null;
 
         // GetMask : 여러개 찾을 수 있다.
         // 특정 범위안에 존재하는지 확인
@@ -223,12 +257,14 @@ public class Enemy : MonoBehaviour
                 if (IsSightBlock(toPlayerDir))
                 {
                     // 시야가 다른 물체로 인해 막히지 않았다.
+
+                    chaseTarget = colliders[0].transform;   // 추적할 플레이어 저장
                     result = true;
                 }
             }
         }
         // LayerMask.GetMask("Player", "Water", "UI");        // 리턴 2^6+2^4+2^5 = 64+16+32 = 112
-        // LayerMask.NameToLayer("Player");    // 리턴 6
+        // LayerMask.NameToLayer("Player");                   // 리턴 6
         return result;
     }
 
