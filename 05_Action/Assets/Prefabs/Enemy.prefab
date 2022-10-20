@@ -394,7 +394,7 @@ GameObject:
   - component: {fileID: 8238657320412243317}
   - component: {fileID: -5641092725962567601}
   - component: {fileID: 3563921031597390040}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Enemy
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -468,6 +468,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   waypoints: {fileID: 0}
   moveSpeed: 3
+  sightRange: 10
+  sightHalfAngle: 50
   waitTime: 1
 --- !u!135 &-5641092725962567601
 SphereCollider:

@@ -10,7 +10,7 @@ using UnityEditor;  // UNITY_EDITOR라는 전처리기가 설정되어있을 때
 
 [RequireComponent(typeof(Rigidbody))]   // 필수적으로 필요한 컴포넌트가 있을 때 자동으로 넣어주는 유니티 속성(Attribute)
 [RequireComponent(typeof(Animator))]
-public class Enemy : MonoBehaviour
+public class Enemy : MonoBehaviour, IBattle, IHealth
 {
     // 웨이포인트 관련 변수 -------------------------------------------------------------------------------------------
 
@@ -85,6 +85,10 @@ public class Enemy : MonoBehaviour
     // -----------------------------------------------------------------------------------------------------------
 
     // 프로퍼티 --------------------------------------------------------------------------------------------------
+    public float attackPower = 6.0f;
+    public float defencePower = 5.0f;
+    public float maxHP = 100.0f;
+    float hp = 100.0f;
 
     /// <summary>
     /// 이동할 목적지(웨이포인트)를 나타내는 프로퍼티
@@ -93,7 +97,7 @@ public class Enemy : MonoBehaviour
     {
         get => waypointTarget;
         set
-        { 
+        {
             waypointTarget = value;
             //lookDir = (moveTarget.position - transform.position).normalized;    // lookDir도 함께 갱신
         }
@@ -107,7 +111,7 @@ public class Enemy : MonoBehaviour
         get => state;
         set
         {
-            if(state != value)
+            if (state != value)
             {
                 state = value;  // 새로운 상태로 변경
                 switch (state)  // 새로운 상태(새로운 상태로 들어가면서 해야 할 일 처리)
@@ -145,12 +149,39 @@ public class Enemy : MonoBehaviour
         set
         {
             waitTimer = value;
-            if (waitTimer < 0.0f)   // 남은 시간이 다 되면
+            if (waypoints != null && waitTimer < 0.0f)   // 남은 시간이 다 되면
             {
                 State = EnemyState.Patrol;  // Patrol 상태로 전환
             }
         }
     }
+
+    public float AttackPower => AttackPower;
+
+    public float DefencePower => defencePower;
+
+    public float HP
+    {
+        get => hp;
+        set
+        {
+            hp = value;
+
+            if(hp < 0)
+            {
+                Die();
+            }
+            hp = Mathf.Clamp(hp, 0.0f, maxHP);
+
+            onHealthChange?.Invoke(hp/maxHP);
+        }
+    }
+
+    public float MaxHP => maxHP;
+
+    public Action<float> onHealthChange { get; set; }
+    public Action onDie { get; set; }
+
     // -----------------------------------------------------------------------------------------------------------
 
     private void Awake()
@@ -162,6 +193,8 @@ public class Enemy : MonoBehaviour
 
     private void Start()
     {
+        hp = maxHP;
+
         agent.speed = moveSpeed;
 
         // waypoints가 없을 때를 대비한 코드
@@ -177,6 +210,10 @@ public class Enemy : MonoBehaviour
         // 값 초기화 작업
         State = EnemyState.Wait;    // 기본 상태 설정(wait)
         anim.ResetTrigger("Stop");  // 트리거가 쌓이는 현상을 방지
+
+        // 테스트 코드
+        onHealthChange += Test_HP_Change;
+        onDie += Test_Die;
     }
 
     private void FixedUpdate()
@@ -306,6 +343,16 @@ public class Enemy : MonoBehaviour
         SearchPlayer();
     }
 
+    void Test_HP_Change(float ratio)
+    {
+        
+    }
+
+    void Test_Die()
+    {
+
+    }
+
     private void OnDrawGizmos()
     {
 #if UNITY_EDITOR
@@ -327,5 +374,20 @@ public class Enemy : MonoBehaviour
 
         Handles.DrawWireArc(transform.position, transform.up, q1 * forward, sightHalfAngle * 2, sightRange, 5.0f);  // 호 그리기
 #endif
+    }
+
+    public void Attack(IBattle target)
+    {
+        target?.Defence(AttackPower);
+    }
+
+    public void Defence(float damage)
+    {
+        HP -= (damage - DefencePower);
+    }
+
+    public void Die()
+    {
+        onDie?.Invoke();
     }
 }
