@@ -725,7 +725,8 @@ AnimatorState:
   - {fileID: -2831487118268652060}
   - {fileID: 606635445633706929}
   - {fileID: -1330361774010755199}
-  m_StateMachineBehaviours: []
+  m_StateMachineBehaviours:
+  - {fileID: 2721444270365868462}
   m_Position: {x: 50, y: 50, z: 0}
   m_IKOnFeet: 0
   m_WriteDefaultValues: 1
@@ -962,6 +963,30 @@ BlendTree:
   m_UseAutomaticThresholds: 0
   m_NormalizedBlendValues: 0
   m_BlendType: 0
+--- !u!114 &2721444270365868462
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4c4bef284de0948469f095f8b8f5be30, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &3967607109052241804
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4c4bef284de0948469f095f8b8f5be30, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1101 &5027018192430383875
 AnimatorStateTransition:
   m_ObjectHideFlags: 1
@@ -1134,7 +1159,8 @@ AnimatorState:
   - {fileID: 1403635891580122567}
   - {fileID: -1675940962789459365}
   - {fileID: 5027018192430383875}
-  m_StateMachineBehaviours: []
+  m_StateMachineBehaviours:
+  - {fileID: 3967607109052241804}
   m_Position: {x: 50, y: 50, z: 0}
   m_IKOnFeet: 0
   m_WriteDefaultValues: 1
@@ -1149,6 +1175,18 @@ AnimatorState:
   m_MirrorParameter: 
   m_CycleOffsetParameter: 
   m_TimeParameter: 
+--- !u!114 &7858759901070283076
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4c4bef284de0948469f095f8b8f5be30, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1101 &8395800119728650287
 AnimatorStateTransition:
   m_ObjectHideFlags: 1
@@ -1191,7 +1229,8 @@ AnimatorState:
   - {fileID: -3501051170764352917}
   - {fileID: 7591086024168537876}
   - {fileID: -7285718432021553059}
-  m_StateMachineBehaviours: []
+  m_StateMachineBehaviours:
+  - {fileID: 7858759901070283076}
   m_Position: {x: 50, y: 50, z: 0}
   m_IKOnFeet: 0
   m_WriteDefaultValues: 1

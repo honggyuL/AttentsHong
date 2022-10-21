@@ -4951,3 +4951,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d13110c21ef30204cbc0da5d333f42b4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  hitEffect: {fileID: 4021103657954561961, guid: 0b17babf83cc79443a2dfa296b0bfc9d, type: 3}

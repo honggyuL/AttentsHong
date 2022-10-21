@@ -4,18 +4,33 @@ using UnityEngine;
 
 public class Arrow : MonoBehaviour
 {
-    public float ArrowSpeed = 5.0f;
-    public float lifeTime = 3.0f;
+    public GameObject arrow;
+    public GameObject Target;
+    public Transform StarArrowPos;
+    public float ArrowSpeed = 10.0f;
+    public int Damage;
 
     private void Start()
     {
-        Destroy(this.gameObject, lifeTime);
+        // 타겟 = Archer의 타겟
+        Target = GameObject.Find("Archer").GetComponent<ArcherAttack>().myTarget;
     }
 
     private void Update()
     {
-        transform.Translate(ArrowSpeed * Time.deltaTime * Vector3.forward, Space.Self);
+        if(Target != null)
+        {
+            // 타겟의 거리까지 3초걸린다.
+            transform.position = Vector3.MoveTowards(transform.position, Target.transform.position, 3f);
+        }
     }
 
-
+    private void OnTriggerEnter(Collider other)
+    {
+        // 닿은 오브젝트 이름이 Enemy일 때
+        if (other.gameObject.layer.Equals(LayerMask.NameToLayer("Enemy")))
+        {
+            Destroy(this.gameObject);   // 화살 삭제
+        }
+    }
 }

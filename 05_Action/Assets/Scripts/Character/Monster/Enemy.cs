@@ -73,7 +73,9 @@ public class Enemy : MonoBehaviour, IBattle, IHealth
     {
         Wait = 0,   // 대기 상태
         Patrol,     // 순찰 상태
-        Chase       // 추적 상태
+        Chase,      // 추적 상태
+        Dead        // 사망 상태
+            
     }
     // -----------------------------------------------------------------------------------------------------------
 
@@ -133,6 +135,11 @@ public class Enemy : MonoBehaviour, IBattle, IHealth
                         anim.SetTrigger("Move");    // 이동하는 애니메이션 재생
                         stateUpdate = Update_Chase; // FixedUpdate에서 실행될 델리게이트 변경
                         break;
+                    case EnemyState.Dead:
+                        agent.isStopped = true;     // 길찾기 정지
+                        anim.SetTrigger("Die");     // 사망 애니메이션 재생
+                        stateUpdate = Update_Dead;  // FixedUpdate에서 실행될 델리게이트 변경
+                        break;
                     default:
                         break;
                 }
@@ -165,15 +172,19 @@ public class Enemy : MonoBehaviour, IBattle, IHealth
         get => hp;
         set
         {
-            hp = value;
-
-            if(hp < 0)
+            if(hp != value)
             {
-                Die();
-            }
-            hp = Mathf.Clamp(hp, 0.0f, maxHP);
 
-            onHealthChange?.Invoke(hp/maxHP);
+                hp = value;
+
+                if(State != EnemyState.Dead && hp <0)
+                {
+                    Die();
+                }
+                hp = Mathf.Clamp(hp, 0.0f, maxHP);
+
+                onHealthChange?.Invoke(hp/maxHP);
+            }
         }
     }
 
@@ -219,12 +230,14 @@ public class Enemy : MonoBehaviour, IBattle, IHealth
     private void FixedUpdate()
     {
         // 매번 추적대상을 찾기
-        if (SearchPlayer())
+        if (State != EnemyState.Dead && SearchPlayer())
         {
             State = EnemyState.Chase;   // 추적 대상이 있으면 추적 상태로 변경
         }
         stateUpdate();
     }
+
+    
 
     /// <summary>
     /// Patrol 상태일 때 실행될 업데이트 함수
@@ -264,6 +277,14 @@ public class Enemy : MonoBehaviour, IBattle, IHealth
         {
             State = EnemyState.Wait;    // 추적 대상이 없으면 잠시 대기
         }
+    }
+
+    /// <summary>
+    /// Dead 상태일 때 실행될 업데이트 함수
+    /// </summary>
+    private void Update_Dead()
+    {
+
     }
 
     /// <summary>
@@ -383,11 +404,19 @@ public class Enemy : MonoBehaviour, IBattle, IHealth
 
     public void Defence(float damage)
     {
-        HP -= (damage - DefencePower);
+        if (State != EnemyState.Dead)
+        {
+
+            anim.SetTrigger("Hit");
+
+            HP -= (damage - DefencePower);
+        }
     }
 
     public void Die()
     {
+        State = EnemyState.Dead;
+
         onDie?.Invoke();
     }
 }
