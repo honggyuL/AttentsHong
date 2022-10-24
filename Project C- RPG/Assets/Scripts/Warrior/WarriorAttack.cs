@@ -8,6 +8,7 @@ using UnityEngine.InputSystem;
 
 public class WarriorAttack : MonoBehaviour
 {
+    
     public float AngleRange = 120.0f;
     public float distance = 50.0f;
     
@@ -49,11 +50,5 @@ public class WarriorAttack : MonoBehaviour
         Handles.DrawSolidArc(transform.position, Vector3.up, transform.forward, -AngleRange / 2, distance);
     }
 
-    public void OnclickAttackButton()
-    {
-        if(anim.GetBool("IsAttack") = false)
-        {
-
-        }
-    }
+    
 }

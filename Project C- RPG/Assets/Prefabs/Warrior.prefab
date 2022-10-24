@@ -301,7 +301,7 @@ GameObject:
   - component: {fileID: 5660075524750421576}
   m_Layer: 0
   m_Name: Warrior
-  m_TagString: Untagged
+  m_TagString: Warrior
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -772,9 +772,11 @@ GameObject:
   m_Component:
   - component: {fileID: 7674916111479618243}
   - component: {fileID: 669596063083838435}
+  - component: {fileID: 802646982616950787}
+  - component: {fileID: 6372361226140872821}
   m_Layer: 0
   m_Name: Maria_sword
-  m_TagString: Untagged
+  m_TagString: Warrior
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -786,14 +788,14 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3129231812569918627}
-  m_LocalRotation: {x: 0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0, y: 0, z: 0}
+  m_LocalRotation: {x: -0.026759742, y: -0.009844946, z: -0.0045345076, w: 0.9995831}
+  m_LocalPosition: {x: 0.026, y: 0.115, z: 0.526}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1759935928603538482}
   m_RootOrder: 1
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: -3.072, y: -1.115, z: -0.49}
 --- !u!137 &669596063083838435
 SkinnedMeshRenderer:
   m_ObjectHideFlags: 0
@@ -912,6 +914,35 @@ SkinnedMeshRenderer:
     m_Center: {x: 0.9563867, y: 0.4161765, z: 0.33970225}
     m_Extent: {x: 0.37377962, y: 0.10996109, z: 0.634907}
   m_DirtyAABB: 0
+--- !u!114 &802646982616950787
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3129231812569918627}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: feba6f16a34e75e49bf0bca06cd0b852, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  type: 0
+  damage: 10
+  attackSpeed: 5
+  Collider: {fileID: 6372361226140872821}
+--- !u!65 &6372361226140872821
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3129231812569918627}
+  m_Material: {fileID: 0}
+  m_IsTrigger: 1
+  m_Enabled: 0
+  serializedVersion: 2
+  m_Size: {x: 0.7, y: 0.2, z: 1.3}
+  m_Center: {x: 1, y: 1.4, z: -0.12}
 --- !u!1 &3258163350788567886
 GameObject:
   m_ObjectHideFlags: 0

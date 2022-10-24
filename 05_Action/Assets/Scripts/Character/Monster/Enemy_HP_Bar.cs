@@ -26,6 +26,6 @@ public class Enemy_HP_Bar : MonoBehaviour
     private void LateUpdate()
     {
         // transform.forward = Camera.main.transform.forward;  // 카메라의 forward와 나의 forward를 일치시킴
-        transform.rotation = Camera.main.transform.rotation;
+        transform.rotation = Camera.main.transform.rotation;    // 카메라와 회전을 일치시킴
     }
 }

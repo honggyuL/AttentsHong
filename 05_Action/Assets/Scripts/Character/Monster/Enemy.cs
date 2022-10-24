@@ -24,16 +24,12 @@ public class Enemy : MonoBehaviour, IBattle, IHealth
     /// </summary>
     Transform waypointTarget;
 
-    // -----------------------------------------------------------------------------------------------------------
-
     // 이동 관련 변수 -------------------------------------------------------------------------------------------
 
     /// <summary>
     /// 적의 이동 속도
     /// </summary>
     public float moveSpeed = 3.0f;
-
-    // -----------------------------------------------------------------------------------------------------------
 
     // 추적 관련 변수 -------------------------------------------------------------------------------------------
     /// <summary>
@@ -51,18 +47,17 @@ public class Enemy : MonoBehaviour, IBattle, IHealth
     /// </summary>
     Transform chaseTarget;
 
-    // -----------------------------------------------------------------------------------------------------------
-
     // 상태 관련 변수 --------------------------------------------------------------------------------------------
     EnemyState state = EnemyState.Patrol;               // 현재 적의 상태(대기 상태냐 순찰 상태냐)
     public float waitTime = 1.0f;   // 목적지에 도착했을 때 기다리는 시간
-    float waitTimer;                // 남아있는 기다려야 하는 시간
-    // -----------------------------------------------------------------------------------------------------------
+    float waitTimer;                // 남아있는 기다려야 하는 
 
     // 컴포넌트 캐싱용 변수 --------------------------------------------------------------------------------------
     Animator anim;
     NavMeshAgent agent;
-    // -----------------------------------------------------------------------------------------------------------
+    SphereCollider bodyCollider;
+    Rigidbody rigid;
+    ParticleSystem dieEffect;           // 죽을 때 표시될 이팩트
 
     // 추가 데이터 타입 ------------------------------------------------------------------------------------------
 
@@ -77,20 +72,57 @@ public class Enemy : MonoBehaviour, IBattle, IHealth
         Dead        // 사망 상태
             
     }
-    // -----------------------------------------------------------------------------------------------------------
+
+    // 전투용 데이터 ---------------------------------------------------------------------------------------------
+    public float attackPower = 10.0f;   // 공격력
+    public float defencePower = 3.0f;   // 방어력
+    public float maxHP = 100.0f;        // 최대 HP
+    float hp = 100.0f;                  // 현재 
 
     // 델리게이트 ------------------------------------------------------------------------------------------------
+
+    /// <summary>
+    /// HP가 변경될 때 실행될 델리게이트
+    /// </summary>
+    public Action<float> onHealthChange { get; set; }
+    
+    /// <summary>
+    /// 적이 죽을 때 실행될 델리게이트
+    /// </summary>
+    public Action onDie { get; set; }
+
     /// <summary>
     /// 상태별 업데이터 함수를 가질 델리게이트
     /// </summary>
     Action stateUpdate;
-    // -----------------------------------------------------------------------------------------------------------
 
     // 프로퍼티 --------------------------------------------------------------------------------------------------
-    public float attackPower = 6.0f;
-    public float defencePower = 5.0f;
-    public float maxHP = 100.0f;
-    float hp = 100.0f;
+    public float AttackPower => attackPower;
+
+    public float DefencePower => defencePower;
+
+    public float HP
+    {
+        get => hp;
+        set
+        {
+            if(hp != value)
+            {
+
+                hp = value;
+
+                if(State != EnemyState.Dead && hp <0)
+                {
+                    Die();
+                }
+                hp = Mathf.Clamp(hp, 0.0f, maxHP);
+
+                onHealthChange?.Invoke(hp/maxHP);
+            }
+        }
+    }
+
+    public float MaxHP => maxHP;
 
     /// <summary>
     /// 이동할 목적지(웨이포인트)를 나타내는 프로퍼티
@@ -138,6 +170,12 @@ public class Enemy : MonoBehaviour, IBattle, IHealth
                     case EnemyState.Dead:
                         agent.isStopped = true;     // 길찾기 정지
                         anim.SetTrigger("Die");     // 사망 애니메이션 재생
+
+                        
+                        // 시간이 지나면 서서히 가라앉는다.
+                        StartCoroutine(DeadRepresent());
+
+
                         stateUpdate = Update_Dead;  // FixedUpdate에서 실행될 델리게이트 변경
                         break;
                     default:
@@ -163,36 +201,6 @@ public class Enemy : MonoBehaviour, IBattle, IHealth
         }
     }
 
-    public float AttackPower => AttackPower;
-
-    public float DefencePower => defencePower;
-
-    public float HP
-    {
-        get => hp;
-        set
-        {
-            if(hp != value)
-            {
-
-                hp = value;
-
-                if(State != EnemyState.Dead && hp <0)
-                {
-                    Die();
-                }
-                hp = Mathf.Clamp(hp, 0.0f, maxHP);
-
-                onHealthChange?.Invoke(hp/maxHP);
-            }
-        }
-    }
-
-    public float MaxHP => maxHP;
-
-    public Action<float> onHealthChange { get; set; }
-    public Action onDie { get; set; }
-
     // -----------------------------------------------------------------------------------------------------------
 
     private void Awake()
@@ -200,12 +208,13 @@ public class Enemy : MonoBehaviour, IBattle, IHealth
         // 컴포넌트 찾기
         anim = GetComponent<Animator>();
         agent = GetComponent<NavMeshAgent>();
+        bodyCollider = GetComponent<SphereCollider>();
+        rigid = GetComponent<Rigidbody>();
+        dieEffect = GetComponentInChildren<ParticleSystem>();
     }
 
     private void Start()
     {
-        hp = maxHP;
-
         agent.speed = moveSpeed;
 
         // waypoints가 없을 때를 대비한 코드
@@ -359,6 +368,63 @@ public class Enemy : MonoBehaviour, IBattle, IHealth
         return result;
     }
 
+    /// <summary>
+    /// 공격용 함수
+    /// </summary>
+    /// <param name="target">공격할 대상</param>
+    public void Attack(IBattle target)
+    {
+        target?.Defence(AttackPower);
+    }
+
+    /// <summary>
+    /// 방어용 함수
+    /// </summary>
+    /// <param name="damage">현재 입은 데미지</param>
+    public void Defence(float damage)
+    {
+        // 기본 공식 : 실제 입는 데미지 = 적 공격 데미지 - 방어력
+        if (State != EnemyState.Dead)
+        {
+            anim.SetTrigger("Hit");
+            HP -= (damage - DefencePower);
+        }
+    }
+
+    /// <summary>
+    ///  죽었을 때 실행될 함수
+    /// </summary>
+    public void Die()
+    {
+        State = EnemyState.Dead;
+        onDie?.Invoke();
+    }
+
+    /// <summary>
+    /// 사망 연출용 코루틴
+    /// </summary>
+    /// <returns></returns>
+    IEnumerator DeadRepresent()
+    {
+        // 바닥에 이팩트 처리
+        dieEffect.Play();                       // 이팩트 재생
+        dieEffect.transform.parent = null;      // 부모자식 관계 끊기
+        Enemy_HP_Bar hpBar = GetComponentInChildren < Enemy_HP_Bar>();
+        Destroy(hpBar.gameObject);  // hp바 삭제
+        
+
+        yield return new WaitForSeconds(1.5f);  // 슬라임 사망 애니메이션이 1.33초라 그 이후에 떨어짐
+
+        agent.enabled = false;          // 네브메시에이전트 컴포넌트를 끄기
+        bodyCollider.enabled = false;   // 컬라이더 컴포넌트 끄기
+        rigid.isKinematic = false;      // 키네마텍 끄기
+        rigid.drag = 10.0f;             // 마찰력은 천천히 떨어질 정도로
+
+        yield return new WaitForSeconds(1.5f);  // 1.5초 뒤에
+        Destroy(dieEffect.gameObject);  // 이팩트 삭제
+        Destroy(this.gameObject);       // 적 삭제
+    }
+
     public void Test()
     {
         SearchPlayer();
@@ -381,7 +447,7 @@ public class Enemy : MonoBehaviour, IBattle, IHealth
         Handles.DrawWireDisc(transform.position, transform.up, sightRange);     // 시야 반경만큼 원 그리기
         if ( SearchPlayer()) // 플레이어가 보이는지 여부에 따라 색상 지정
         {
-            Handles.color = Color.red;      // 보이면 깔간색
+            Handles.color = Color.red;      // 보이면 빨간색
         }
         
         Vector3 forward = transform.forward * sightRange;                                // 앞쪽 방향으로 시야 범위만큼 가는 백터
@@ -395,28 +461,5 @@ public class Enemy : MonoBehaviour, IBattle, IHealth
 
         Handles.DrawWireArc(transform.position, transform.up, q1 * forward, sightHalfAngle * 2, sightRange, 5.0f);  // 호 그리기
 #endif
-    }
-
-    public void Attack(IBattle target)
-    {
-        target?.Defence(AttackPower);
-    }
-
-    public void Defence(float damage)
-    {
-        if (State != EnemyState.Dead)
-        {
-
-            anim.SetTrigger("Hit");
-
-            HP -= (damage - DefencePower);
-        }
-    }
-
-    public void Die()
-    {
-        State = EnemyState.Dead;
-
-        onDie?.Invoke();
     }
 }
