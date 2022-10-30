@@ -170,12 +170,7 @@ public class Enemy : MonoBehaviour, IBattle, IHealth
                     case EnemyState.Dead:
                         agent.isStopped = true;     // 길찾기 정지
                         anim.SetTrigger("Die");     // 사망 애니메이션 재생
-
-                        
-                        // 시간이 지나면 서서히 가라앉는다.
-                        StartCoroutine(DeadRepresent());
-
-
+                        StartCoroutine(DeadRepresent());    // 시간이 지나면 서서히 가라앉는다.
                         stateUpdate = Update_Dead;  // FixedUpdate에서 실행될 델리게이트 변경
                         break;
                     default:
@@ -398,6 +393,35 @@ public class Enemy : MonoBehaviour, IBattle, IHealth
     {
         State = EnemyState.Dead;
         onDie?.Invoke();
+
+        MakeDropItem();
+    }
+
+    void MakeDropItem()
+    {
+        float percentage = UnityEngine.Random.Range(0.0f, 1.0f);
+        uint index;
+        if(percentage < 0.6f)
+        {
+            // 60% 확률로 들어옴
+            index = 0;
+
+        }
+        else if( percentage < 0.9f)
+        {
+            // 30% 확률로 들어옴
+            index = 1;
+        }
+        else
+        {
+            // 10% 확률로 들어옴
+            index = 2;
+        }
+
+        //Instantiate(dropItemPrefabs[index], transform.position, transform.rotation);
+        GameObject obj = ItemFactory.MakeItem(index);
+        obj.transform.position = transform.position;
+        obj.transform.rotation = transform.rotation;
     }
 
     /// <summary>
