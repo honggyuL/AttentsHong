@@ -30,5 +30,10 @@ public class Test_Battle : Test_Base
         //GameManager.Inst.ItemData[ItemIDCode.Ruby];
 
         GameObject obj = ItemFactory.MakeItem(ItemIDCode.Ruby);
+        GameObject obj2 = ItemFactory.MakeItem(ItemIDCode.Emerald, new Vector3(0, 0, 1.2f));
+        GameObject obj3 = ItemFactory.MakeItem(ItemIDCode.Emerald, new Vector3(0, 0, 1.2f), true);
+
+        GameObject[] obj4 = ItemFactory.MakeItem(ItemIDCode.Sapphire, 5);
+        GameObject[] obj5 = ItemFactory.MakeItem(ItemIDCode.Sapphire, 5, new Vector3(0,0,2.0f), true);
     }
 }

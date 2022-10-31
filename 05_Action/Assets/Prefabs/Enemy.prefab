@@ -721,6 +721,11 @@ MonoBehaviour:
   attackPower: 6
   defencePower: 5
   maxHP: 100
+  dropItems:
+  - id: 0
+    dropPercentage: 0.90016925
+  - id: 1
+    dropPercentage: 0.09983074
 --- !u!135 &-5641092725962567601
 SphereCollider:
   m_ObjectHideFlags: 0
