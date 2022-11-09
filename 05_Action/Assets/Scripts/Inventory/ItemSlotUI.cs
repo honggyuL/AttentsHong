@@ -5,8 +5,9 @@ using UnityEngine.EventSystems;
 using UnityEngine;
 using UnityEngine.UI;
 using System;
+using Unity.VisualScripting;
 
-public class ItemSlotUI : MonoBehaviour, IDragHandler, IBeginDragHandler, IEndDragHandler
+public class ItemSlotUI : MonoBehaviour, IDragHandler, IBeginDragHandler, IEndDragHandler, IPointerClickHandler,IPointerEnterHandler,IPointerExitHandler, IPointerMoveHandler
 {
     // 변수 -----------------------------------------------------------------------------------------------
     private uint id;   // 몇번째 슬롯인가?
@@ -22,9 +23,13 @@ public class ItemSlotUI : MonoBehaviour, IDragHandler, IBeginDragHandler, IEndDr
     public ItemSlot ItemSlot => itemSlot;
 
     // 델리게이트 ------------------------------------------------------------------------------------------
-    public Action<uint> onDragStart;
-    public Action<uint> onDragEnd;
-    public Action<uint> onDragCancel;
+    public Action<uint> onDragStart;        // 드래그 시작했을 때
+    public Action<uint> onDragEnd;          // 드래그가 끝났을 때(자신 안에서 끝)
+    public Action<uint> onDragCancel;       // 드래그가 실패했을 때(자신 밖에서 끝)
+    public Action<uint> onClick;            // 클릭이 되었을 때
+    public Action<uint> onPointerEnter;     // 마우스 포인터가 안에 들어왔을 때
+    public Action<uint> onPointerExit;      // 마우스 포인터가 밖으로 나갔을 때
+    public Action<Vector2> onPointerMove;   // 마우스 포인터가 안에서 움직일 때
 
     // 함수 ------------------------------------------------------------------------------------------------
 
@@ -39,7 +44,7 @@ public class ItemSlotUI : MonoBehaviour, IDragHandler, IBeginDragHandler, IEndDr
     /// </summary>
     /// <param name="id">슬롯의 ID</param>
     /// <param name="slot">이 UI가 보여줄 ItemSlot</param>
-    public void InitializeSlot(uint id, ItemSlot slot)
+    public virtual void InitializeSlot(uint id, ItemSlot slot)
     {
         this.id = id;
         this.itemSlot = slot;
@@ -48,6 +53,10 @@ public class ItemSlotUI : MonoBehaviour, IDragHandler, IBeginDragHandler, IEndDr
         onDragStart = null;
         onDragEnd = null;
         onDragCancel = null;
+        onClick = null;
+        onPointerEnter = null;
+        onPointerExit = null;
+        onPointerMove = null;
 
         Refresh();
     }
@@ -122,5 +131,41 @@ public class ItemSlotUI : MonoBehaviour, IDragHandler, IBeginDragHandler, IEndDr
             Debug.Log($"드래그 종료 : {endSlot.ID}번 슬롯");
             onDragCancel?.Invoke(ID);                              // 드래그가 실패했음을 알림
         }
+    }
+
+    /// <summary>
+    /// EventSystems에서 클릭이 감지되면 실행되는 함수
+    /// </summary>
+    /// <param name="eventData">관련 이벤트 정보들</param>
+    public void OnPointerClick(PointerEventData eventData)
+    {
+        onClick.Invoke(ID);
+    }
+
+    /// <summary>
+    /// EventSystems에서 마우스 포인터가 이 UI 영역에 들어오면 실행되는 함수
+    /// </summary>
+    /// <param name="eventData">관련 이벤트 정보들</param>
+    public void OnPointerEnter(PointerEventData eventData)
+    {
+        onPointerEnter?.Invoke(ID);
+    }
+
+    /// <summary>
+    /// EventSystems에서 마우스 포인터가 이 UI 영역을 나가면 실행되는 함수
+    /// </summary>
+    /// <param name="eventData">관련 이벤트 정보들</param>
+    public void OnPointerExit(PointerEventData eventData)
+    {
+        onPointerExit?.Invoke(ID);
+    }
+
+    /// <summary>
+    /// EventSysterms에서 마우스 포인터가 이 UI 영역안에서 움직이면 실행되는 함수
+    /// </summary>
+    /// <param name="eventData">관련 이벤트 정보들</param>
+    public void OnPointerMove(PointerEventData eventData)
+    {
+        onPointerMove?.Invoke(eventData.position);  // 스크린 좌표값 넘겨주기
     }
 }

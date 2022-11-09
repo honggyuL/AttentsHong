@@ -1,6 +1,3 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -26,8 +23,14 @@ public class InventoryUI : MonoBehaviour
     /// </summary>
     TempItemSlotUI tempSlotUI;
 
+    /// <summary>
+    /// 아이템 상세 정보를 보여주는 UI창
+    /// </summary>
+    DetailInfoUI detail;
+
     private void Awake()
     {
+        // 컴포넌트 찾기
         Transform slotParent = transform.GetChild(0);
         slotUIs = new ItemSlotUI[slotParent.childCount];
         for( int i=0; i<slotParent.childCount; i++)
@@ -37,6 +40,7 @@ public class InventoryUI : MonoBehaviour
         }
         
         tempSlotUI = GetComponentInChildren<TempItemSlotUI>();
+        detail = GetComponentInChildren<DetailInfoUI>();
     }
 
     /// <summary>
@@ -53,16 +57,16 @@ public class InventoryUI : MonoBehaviour
         if (Inventory.Default_Inventory_Size != inven.SlotCount)    // 인벤토리 크기가 기본과 다를 때
         {
             // 기본 사이즈와 다르면 기존 슬롯을 전부 삭제하고 새로 만들기
-            foreach( var slot in slotUIs)
+            foreach (var slot in slotUIs)
             {
                 Destroy(slot.gameObject);   // 기본적으로 가지고 있던 슬롯 모두 제거
             }
-            
+
             // 인벤토리 크기에 따라 ItemSlotUI의 크기 변경
             RectTransform rectParent = (RectTransform)slotParent;
             float totalArea = rectParent.rect.width * rectParent.rect.height;   // slotParent의 전체 면적 계산
             float slotArea = totalArea / inven.SlotCount;                 // slot 하나의 면적 구하기
-            
+
             float slotSideLength = Mathf.Floor(Mathf.Sqrt(slotArea)) - grid.spacing.x;  // spacing 크기 고려해서 slot 한변의 길이 구하기
             grid.cellSize = new Vector2(slotSideLength, slotSideLength);           // 계산 결과 적용
 
@@ -81,13 +85,18 @@ public class InventoryUI : MonoBehaviour
         {
             slotUIs[i].InitializeSlot((uint)i, inven[i]);             // 각 슬롯 초기화
             slotUIs[i].Resize(grid.cellSize.x * 0.75f);            // 슬롯 크기에 맞게 내부 크기 리사이즈
-            slotUIs[i].onDragStart += onItemDragStart;          // 슬롯에서 드래그가 시작될 때 실행될 함수 연결
-            slotUIs[i].onDragEnd += onItemDragEnd;           // 슬롯에서 드래그가 끝날 때 실행될 함수 연결
-            slotUIs[i].onDragCancel += onItemDragEnd;         // 드래그가 실패했을 때 실행될 함수
+            slotUIs[i].onDragStart += onItemMoveStart;          // 슬롯에서 드래그가 시작될 때 실행될 함수 연결
+            slotUIs[i].onDragEnd += onItemMoveEnd;           // 슬롯에서 드래그가 끝날 때 실행될 함수 연결
+            slotUIs[i].onDragCancel += onItemMoveCancel;         // 드래그가 실패했을 때 실행될 함수
+            slotUIs[i].onClick += onItemMoveEnd;                // 클릭을 했을 때 실행될 함수 연결
+            slotUIs[i].onPointerEnter += onItemDetailOn;        // 마우스가 들어갔을 때 실행될 함수 연결
+            slotUIs[i].onPointerExit += onItemDetailOff;        // 마우스가 나갔을 때 실행될 함수 연결
+            slotUIs[i].onPointerMove += onPointerMove;          // 마우스가 슬롯 안에서 움직일 때 실행될 함수 연결
         }
 
         // 임시 슬롯 초기화 처리
         tempSlotUI.InitializeSlot(Inventory.TempSlotIndex, inven.TempSlot); // 임시 슬롯 초기화
+        tempSlotUI.onTempSlotOpenClose += OnDetailPause;
         tempSlotUI.Close(); // 기본적으로 닫아 놓기
     }
 
@@ -95,23 +104,72 @@ public class InventoryUI : MonoBehaviour
     /// 슬롯에 드래그를 시작했을 때 실행될 함수
     /// </summary>
     /// <param name="slotID">드래그가 시작된 슬롯의 ID</param>
-    private void onItemDragStart(uint slotID)
+    private void onItemMoveStart(uint slotID)
     {
         inven.MoveItem(slotID, Inventory.TempSlotIndex);    // 슬롯에 있는 아이템들을 임시 슬롯으로 모두 옮김
         tempSlotUI.Open();                          // 임시 슬롯을 보여주기
     }
 
     /// <summary>
-    /// 드래그가 슬롯에서 끝났을 때나 실패했을 때 실행될 함수
+    /// 드래그가 슬롯에서 끝났을 때, 클릭이 되었을 때 실행될 함수
     /// </summary>
     /// <param name="slotID">드래그가 끝난 슬롯의 ID</param>
-    private void onItemDragEnd(uint slotID)
+    private void onItemMoveEnd(uint slotID)
+    {
+        onItemMoveCancel(slotID);
+        detail.Open(inven[slotID].ItemData);
+    }
+
+    /// <summary>
+    /// 드래그가 실패했을 때 실행될 함수
+    /// </summary>
+    /// <param name="slotID">드래그가 끝난 슬롯의 ID</param>
+    private void onItemMoveCancel(uint slotID)
     {
         inven.MoveItem(Inventory.TempSlotIndex, slotID);    // 임시 슬롯의 아이템들을 슬롯에 모두 옮김
         if (tempSlotUI.ItemSlot.IsEmpty)
         {
-            tempSlotUI.Close();                      // 임시 슬롯을 안보이게 만들기
+            tempSlotUI.Close();                             // 임시 슬롯을 안보이게 만들기
         }
-        
+    }
+
+    /// <summary>
+    /// 마우스가 슬롯에 들어갔을 때 해당 슬롯에 있는 아이템을 상세 정보 창에서 볼 수 있도록 설정하고 여는 함수
+    /// </summary>
+    /// <param name="slotID">대상 슬롯</param>
+    private void onItemDetailOn(uint slotID)
+    {
+        detail.Open(slotUIs[slotID].ItemSlot.ItemData); // 대상 슬롯의 아이템 데이터 넘겨주며 열기
+    }
+
+    /// <summary>
+    /// 마우스가 슬롯을 나갔을 때 상세정보창을 닫는 함수
+    /// </summary>
+    /// <param name="_">사용 안함</param>
+    private void onItemDetailOff(uint _)
+    {
+        detail.Close();
+    }
+
+    /// <summary>
+    /// 마우스가 슬롯안에서 움직일 때 실행되는 함수
+    /// </summary>
+    /// <param name="pointerPos">마우스 포인터의 스크린 좌표</param>
+    private void onPointerMove(Vector2 pointerPos)
+    {
+        if(detail.IsOpen)
+        {
+            detail.MovePosition(pointerPos);
+        }
+    }
+
+    /// <summary>
+    /// TempItemSlotUI가 열리고 닫ㅎ힐 때 실행되는 함수
+    /// </summary>
+    /// <param name="isPause">ture면 열려서 실행되었던 것. false면 닫혀서 실행되었던 것</param>
+    private void OnDetailPause(bool isPause)
+    {
+        detail.isPause = isPause;   // 임시 슬롯이 열리면 상세정보창을 일시 정지
+                                    // 임시 슬롯이 닫히면 상세정보창 일시 정지 해제
     }
 }
