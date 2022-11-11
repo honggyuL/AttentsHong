@@ -31,6 +31,11 @@ public class Inventory
     /// </summary>
     ItemDataManager dataManager;
 
+    /// <summary>
+    /// 이 인벤토리를 가지고 있는 플레이어
+    /// </summary>
+    Player owner;
+
     // 프로퍼티 -------------------------------------------------------------------------
 
     public int SlotCount => slots.Length;
@@ -44,19 +49,26 @@ public class Inventory
     /// <returns>index번째에 있는 ItemSlot</returns>
     public ItemSlot this[uint index] => slots[index];
 
-    // 함수들 --------------------------------------------------------------------------
+    /// <summary>
+    /// 이 인벤토리를 가지고 있는 플레이어를 확인하는 프로퍼티
+    /// </summary>
+    public Player Owner => owner;
 
-    public Inventory(int size = Default_Inventory_Size)
+    // 함수들 --------------------------------------------------------------------------
+        
+    public Inventory(Player owner, int size = Default_Inventory_Size)
     {
         Debug.Log($"{size}칸짜리 인벤토리 생성");
         slots = new ItemSlot[size];
-        for(int i=0; i<size; i++)
+        for (int i = 0; i < size; i++)
         {
             slots[i] = new ItemSlot((uint)i);
         }
         tempSlot = new ItemSlot(TempSlotIndex);
 
         dataManager = GameManager.Inst.ItemData;
+
+        this.owner = owner;
     }
 
     /// <summary>
@@ -252,6 +264,21 @@ public class Inventory
         }
     }
 
+    /// <summary>
+    /// 특정 슬롯에 있는 아이템을 임시 슬롯으로 옮기는 함수
+    /// </summary>
+    /// <param name="slotID">아이템을 감소시킬 슬롯</param>
+    /// <param name="count">감소시키는 갯수</param>
+    public void MoveItemToTempSlot(uint slotID, uint count)
+    {
+        if (IsValidAndNotEmptySlotIndex(slotID))    // 적절한 슬롯일때(인덱스가 적절하고 아이템이 들어있다.)
+        {
+            ItemSlot fromSlot = slots[slotID];                  // 슬롯 가져오고
+            fromSlot.DecreaseSlotItem(count);                   // 원래 슬롯에 들어있던 아이템 갯수는 count만큼 감소
+            tempSlot.AssignSlotItem(fromSlot.ItemData, count);  // 임시 슬롯에 원래 슬롯에 들어있던 아이템 종류를 count만큼 설정
+        }
+    }
+
     // 아이템 사용
 
     /// <summary>
@@ -283,7 +310,8 @@ public class Inventory
 
         foreach(var slot in slots)
         {
-            if(slot.ItemData == itemData)
+            // 같은 종류의 아이템이고 빈칸이 있어야 한다.
+            if(slot.ItemData == itemData && slot.ItemCount < slot.ItemData.maxStackCount)
             {
                 findSlot = slot;
                 break;

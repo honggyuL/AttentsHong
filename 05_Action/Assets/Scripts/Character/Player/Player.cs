@@ -38,6 +38,8 @@ public class Player : MonoBehaviour, IBattle, IHealth
     float hp = 100.0f;              // 체력
     bool isAlive = true;            // 살았는지 죽었는지 확인
 
+    Inventory inven;
+
 
     public float itemPickupRange = 2.0f;
 
@@ -85,12 +87,16 @@ public class Player : MonoBehaviour, IBattle, IHealth
         // 장비교체가 일어나면 새로 설정해야 한다.
         weaponPS = weapon_r.GetComponentInChildren<ParticleSystem>();   // 무기가 붙어있는 파티클 시스템 가져오기
         weaponBlade = weapon_r.GetComponentInChildren<Collider>();      // 무기의 충돌 영역 가져오기
+
+        inven = new Inventory(this);
     }
 
     private void Start()
     {
         hp = maxHP;
         isAlive = true;
+
+        GameManager.Inst.InvenUI.InitializeInventory(inven);
     }
 
     /// <summary>
@@ -185,9 +191,13 @@ public class Player : MonoBehaviour, IBattle, IHealth
     {
         Collider[] items = Physics.OverlapSphere(transform.position, itemPickupRange, LayerMask.GetMask("Item"));
 
-        foreach(var item in items)
+        foreach(var itemCollider in items)
         {
-            Destroy(item.gameObject);
+            Item item = itemCollider.gameObject.GetComponent<Item>();
+            if (inven.AddItem(item.data))       // 추가가 성공하면
+            {
+                Destroy(itemCollider.gameObject);   // 아이템 오브젝트 삭제하기
+            }
         }
     }
 

@@ -1,4 +1,6 @@
+using System;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 public class InventoryUI : MonoBehaviour
@@ -28,6 +30,16 @@ public class InventoryUI : MonoBehaviour
     /// </summary>
     DetailInfoUI detail;
 
+    /// <summary>
+    /// 아이템 나누기 UI 창
+    /// </summary>
+    ItemSpliterUI spliter;
+
+    /// <summary>
+    /// 입력 처리용 인풋 액션 클래스
+    /// </summary>
+    PlayerInputActions inputActions;
+
     private void Awake()
     {
         // 컴포넌트 찾기
@@ -41,13 +53,31 @@ public class InventoryUI : MonoBehaviour
         
         tempSlotUI = GetComponentInChildren<TempItemSlotUI>();
         detail = GetComponentInChildren<DetailInfoUI>();
+        spliter = GetComponentInChildren<ItemSpliterUI>();
+        spliter.onOkClick += OnSplitOK;     // 스플리터가 가지고 있는 onOKClick 델리게이트에 함수 등록
+
+        inputActions = new PlayerInputActions();
     }
 
-    /// <summary>
-    /// 입력받은 인벤토리에 맞게 각종 초기화 작업을 하는 함수
-    /// </summary>
-    /// <param name="PlayerInven">이 UI로 표시할 인벤토리</param>
-    public void InitializeInventory(Inventory PlayerInven)
+    private void OnEnable()
+    {
+        inputActions.UI.Enable();
+        inputActions.UI.Click.performed += spliter.OnMouseClick;
+    }
+
+    private void OnDisable()
+    {
+        inputActions.UI.Click.performed -= spliter.OnMouseClick;
+        inputActions.UI.Disable();
+    }
+
+
+
+        /// <summary>
+        /// 입력받은 인벤토리에 맞게 각종 초기화 작업을 하는 함수
+        /// </summary>
+        /// <param name="PlayerInven">이 UI로 표시할 인벤토리</param>
+        public void InitializeInventory(Inventory PlayerInven)
     {
         inven = PlayerInven;
 
@@ -83,12 +113,13 @@ public class InventoryUI : MonoBehaviour
         // 공통 처리부분
         for (uint i = 0; i < inven.SlotCount; i++)
         {
-            slotUIs[i].InitializeSlot((uint)i, inven[i]);             // 각 슬롯 초기화
-            slotUIs[i].Resize(grid.cellSize.x * 0.75f);            // 슬롯 크기에 맞게 내부 크기 리사이즈
+            slotUIs[i].InitializeSlot((uint)i, inven[i]);       // 각 슬롯 초기화
+            slotUIs[i].Resize(grid.cellSize.x * 0.75f);         // 슬롯 크기에 맞게 내부 크기 리사이즈
             slotUIs[i].onDragStart += onItemMoveStart;          // 슬롯에서 드래그가 시작될 때 실행될 함수 연결
-            slotUIs[i].onDragEnd += onItemMoveEnd;           // 슬롯에서 드래그가 끝날 때 실행될 함수 연결
-            slotUIs[i].onDragCancel += onItemMoveCancel;         // 드래그가 실패했을 때 실행될 함수
+            slotUIs[i].onDragEnd += onItemMoveEnd;              // 슬롯에서 드래그가 끝날 때 실행될 함수 연결
+            slotUIs[i].onDragCancel += onItemMoveCancel;        // 드래그가 실패했을 때 실행될 함수
             slotUIs[i].onClick += onItemMoveEnd;                // 클릭을 했을 때 실행될 함수 연결
+            slotUIs[i].onShiftClick += onItemSplit;             // 쉬프트 클릭을 했을 때 실행될 함수 연결
             slotUIs[i].onPointerEnter += onItemDetailOn;        // 마우스가 들어갔을 때 실행될 함수 연결
             slotUIs[i].onPointerExit += onItemDetailOff;        // 마우스가 나갔을 때 실행될 함수 연결
             slotUIs[i].onPointerMove += onPointerMove;          // 마우스가 슬롯 안에서 움직일 때 실행될 함수 연결
@@ -118,6 +149,19 @@ public class InventoryUI : MonoBehaviour
     {
         onItemMoveCancel(slotID);
         detail.Open(inven[slotID].ItemData);
+    }
+
+    /// <summary>
+    /// 슬롯을 쉬프트 클릭했을 때 실행될 함수 
+    /// </summary>
+    /// <param name="slotID"></param>
+    private void onItemSplit(uint slotID)
+    {
+        ItemSlotUI targetSlot = slotUIs[slotID];
+        spliter.transform.position = targetSlot.transform.position + Vector3.up * 100;
+        spliter.Open(targetSlot);
+        detail.Close();
+        detail.IsPause = true;
     }
 
     /// <summary>
@@ -169,7 +213,18 @@ public class InventoryUI : MonoBehaviour
     /// <param name="isPause">ture면 열려서 실행되었던 것. false면 닫혀서 실행되었던 것</param>
     private void OnDetailPause(bool isPause)
     {
-        detail.isPause = isPause;   // 임시 슬롯이 열리면 상세정보창을 일시 정지
+        //detail.isPause = isPause;   // 임시 슬롯이 열리면 상세정보창을 일시 정지
                                     // 임시 슬롯이 닫히면 상세정보창 일시 정지 해제
+    }
+
+    /// <summary>
+    /// 아이템 분리창에서 OK가 클릭되었을 때 실행되는 함수
+    /// </summary>
+    /// <param name="slotID">아이템을 분리할 슬롯</param>
+    /// <param name="count">분리할 아이템 갯수</param>
+    private void OnSplitOK(uint slotID, uint count)
+    {
+        inven.MoveItemToTempSlot(slotID, count);    // slotID번째 슬롯에서 아이템을 count만큼 분리해서 임시슬롯에 담기
+        tempSlotUI.Open();                          // 임시슬롯을 보이게 만들기
     }
 }
