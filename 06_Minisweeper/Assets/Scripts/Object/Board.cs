@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class Board : MonoBehaviour
 {
@@ -40,6 +41,29 @@ public class Board : MonoBehaviour
     /// <param name="type">필요한 이미지의 enum타입</param>
     /// <returns>enum타입에 맞는 이미지</returns>
     public Sprite this[OpenCellType type] => openCellImages[(int)type];
+
+    PlayerInputActions inputActions;
+
+    private void Awake()
+    {
+        inputActions = new PlayerInputActions();
+    }
+
+    private void OnEnable()
+    {
+        inputActions.Player.Enable();
+        inputActions.Player.LeftClick.performed += OnLeftClick;
+        inputActions.Player.RightClick.performed += OnRightClick;
+
+    }
+
+    private void OnDisable()
+    {
+        inputActions.Player.RightClick.performed -= OnRightClick;
+        inputActions.Player.LeftClick.performed -= OnLeftClick;
+        inputActions.Player.Disable();
+
+    }
 
     /// <summary>
     /// 이 보드가 가질 모든 셀을 생성하고 배치하는 함수
@@ -136,12 +160,43 @@ public class Board : MonoBehaviour
 
     int GridToID(int x, int y)
     {
-        if (x >= 0 && x < width && y >= 0 && y < height)
+        if (IsValidGrid(x,y))
             return x + y * width;
 
         return Cell.ID_NOT_VALID;
     }
 
+    /// <summary>
+    /// 입력받은 스크린 좌표가 몇번째 그리드에 있는지 알려주는 함수
+    /// </summary>
+    /// <param name="screenPos">확인할 스크린좌표</param>
+    /// <returns>스크린좌표와 매칭되는 보드 위의 그리드 좌표</returns>
+    Vector2Int ScreenToGrid(Vector2 screenPos)
+    {
+        // 보드의 왼쪽 (시작 좌) 구하기
+        Vector2 startPos = new Vector2(-width * Distance * 0.5f, height * Distance * 0.5f) + (Vector2)transform.position;
+
+        // 보드의 왼쪽 위에서 마우스가 얼마만큼 떨어져 있는지 확인 
+        Vector2 diff = (Vector2)Camera.main.ScreenToWorldPoint(screenPos) - startPos;
+        // Distance로 나누어서 Grid좌표로 변환 
+        return new((int)(diff.x / Distance), (int)(-diff.y / Distance));
+    }
+
+    int ScreenToID(Vector2 screenPos)
+    {
+        Vector2Int grid = ScreenToGrid(screenPos);
+        return GridToID(grid.x, grid.y);
+    }
+
+    bool IsValidGrid(int x, int y)
+    {
+        return x >= 0 && x < width && y >= 0 && y < height;
+    }
+
+    bool IsValidGrid(Vector2Int grid)
+    {
+        return IsValidGrid(grid.x, grid.y);
+    }
 
     /// <summary>
     /// 보드의 모든 셀을 제거하는 함수.
@@ -156,6 +211,27 @@ public class Board : MonoBehaviour
                 Destroy(cell.gameObject);
             }
             cells = null;   // 안의 내용을 다 제거했다고 표시
+        }
+    }
+
+    private void OnLeftClick(InputAction.CallbackContext _)
+    {
+        Debug.Log("왼쪽 클");
+    }
+
+    private void OnRightClick(InputAction.CallbackContext _)
+    {
+        Debug.Log("오른쪽 클");
+        Vector2 screenPos = Mouse.current.position.ReadValue();
+        Vector2Int grid = ScreenToGrid(screenPos);
+        if (IsValidGrid(grid))
+        {
+            Cell target = cells[GridToID(grid.x, grid.y)];
+            Debug.Log($"{target.gameObject.name}을 우클릭했습니.");
+        }
+        else
+        {
+            Debug.Log($"셀 없");
         }
     }
 }
