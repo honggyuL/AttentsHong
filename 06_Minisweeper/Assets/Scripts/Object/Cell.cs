@@ -1,6 +1,8 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class Cell : MonoBehaviour
 {
@@ -51,8 +53,20 @@ public class Cell : MonoBehaviour
     /// </summary>
     Board parentBoard;
 
+    /// <summary>
+    /// 닫혔을 때 보일 스프라이트 렌더러
+    /// </summary>
     SpriteRenderer cover;
+
+    /// <summary>
+    /// 열렸을 때 보일 스프라이트 랜더러
+    /// </summary>
     SpriteRenderer inside;
+
+    /// <summary>
+    /// 이 셀에 의해 눌려진 셀의 목록(자기 자신 or 자기 주변에 닫혀있던 셀)
+    /// </summary>
+    List<Cell> pressedCells;
 
 
     // 프로퍼티 ------------------------------------------------------------------------------------
@@ -107,6 +121,11 @@ public class Cell : MonoBehaviour
     /// </summary>
     public bool IsQuestion => markState == CellMarkState.Question;
 
+    // 델리게이트 ----------------------------------------------------------------------------------
+    public Action onFlagUse;
+    public Action onFlagReturn;
+
+
     // 함수 ---------------------------------------------------------------------------------------
 
     // 확인해야 할 마우스 이벤트
@@ -118,6 +137,8 @@ public class Cell : MonoBehaviour
 
     private void Awake()
     {
+        pressedCells = new List<Cell>(8);               // 새로 메모리 할당
+
         Transform child = transform.GetChild(0);
         cover = child.GetComponent<SpriteRenderer>();
         child = transform.GetChild(1);
@@ -127,47 +148,128 @@ public class Cell : MonoBehaviour
     private void OnTriggerEnter2D(Collider2D collision)
     {
         //Debug.Log("들어왔음");
+        if (Mouse.current.leftButton.ReadValue() > 0)
+        {
+            Debug.Log($"마우스 왼쪽버튼을 누른체로 들어왔음\n({this.gameObject.name})");
+            PressCover();
+        }
     }
 
     private void OnTriggerExit2D(Collider2D collision)
     {
         //Debug.Log("나갔음");
+        if (Mouse.current.leftButton.ReadValue() > 0)
+        {
+            Debug.Log($"마우스 왼쪽버튼을 누른체로 나갔음\n({this.gameObject.name})");
+            RestoreCovers();
+        }
     }
-
-
-
 
     /// <summary>
     /// 셀을 여는 함수
     /// </summary>
     void Open()
     {
+        if (!isOpen && !IsFlaged)               // 닫혀있고 깃발 표시가 안되었을 때만 연다.
+        {
+            isOpen = true;                      // 열렸다고 표시하고
+            cover.gameObject.SetActive(false);  // 셀이 열릴 때 커버를 비활성화
 
+            if (aroundMineCount == 0)           // 주변 지뢰갯수가 0이면 
+            {
+                List<Cell> neighbors = Board.GetNeighbors(this.ID); // 주변 셀들을
+                foreach (var cell in neighbors)
+                {
+                    cell.Open();                // 모두 연다.(재귀호출)
+                }
+            }
+        }
     }
 
     /// <summary>
-    /// 셀에 빈것->깃발->물음표->빈것->... 순서로 표시하는 함수
-    /// </summary>
-    void SetMark()
-    {
-
-    }
-
-    /// <summary>
-    /// 셀이 눌러졌을 때 실행될 함수.
+    /// 마우스 왼쪽 버튼이 이 셀을 눌렀을 때 실행될 함수.
     /// </summary>
     public void CellPress()
     {
-        // 눌러진 이미지로 변경
+        pressedCells.Clear();   // 새롭게 눌려졌으니 기존에 눌려져 있던 셀에 대한 기록은 제거
+        if (IsOpen)
+        {
+            // 이 셀이 열려져 있으면, 자신 주변의 닫힌 셀을 모두 누른 표시를 한다.
+            List<Cell> neighbors = Board.GetNeighbors(this.ID); // 주변 셀을 모두 가져오고
+            foreach (var cell in neighbors)
+            {
+                if (!cell.IsOpen)            // 주변 셀 중에 닫혀있는셀만 
+                {
+                    pressedCells.Add(cell); // 누르고 있는 셀이라고 표시하고
+                    cell.CellPress();       // 누르고 있는 표시 진행
+                }
+            }
+        }
+        else
+        {
+            // 이 셀이 닫힌 셀일 때 자신을 누른 표시를 한다.
+            PressCover();
+        }
     }
 
     /// <summary>
-    /// 누른 셀을 땠을 때 실행될 함수.
+    /// 마우스 왼쪽 버튼이 이 셀 위에서 떨어졌을 때 실행될 함수.
     /// </summary>
     public void CellRelease()
     {
-        // 여는 경우 : Open();
-        // 복구되는 경우
+        RestoreCovers();    // 눌렀다고 표시한 모든 셀을 복구 시키기
+        Open();             // 자신을 열기
+    }
+
+    /// <summary>
+    /// 이 셀이 눌러졌을 때 처리해야 할 일을 모아 놓은 함수
+    /// </summary>
+    void PressCover()
+    {
+        switch (markState)      // 표시 상태에 따라 이미지 변경
+        {
+            case CellMarkState.None:
+                cover.sprite = Board[CloseCellType.Close_Press];
+                break;
+            case CellMarkState.Question:
+                cover.sprite = Board[CloseCellType.Question_Press];
+                break;
+            case CellMarkState.Flag:
+            default:
+                break;
+        }
+        pressedCells.Add(this); // 눌러진 셀이라고 표시
+    }
+
+    /// <summary>
+    /// 이 셀과 관련해서 눌려져 있던 셀들이 복구 될 때 해야할 일을 모아 놓은 함수
+    /// </summary>
+    void RestoreCovers()
+    {
+        foreach (var cell in pressedCells)  // 전부 순회하면서 복구
+        {
+            cell.RestoreCover();
+        }
+        pressedCells.Clear();               // 리스트 비우기
+    }
+
+    /// <summary>
+    /// 이 셀 하나가 눌려져 있다가 복구 될 때 해야할 일을 모아 놓은 함수
+    /// </summary>
+    void RestoreCover()
+    {
+        switch (markState)  // 이미지 상태에 따라서 복구
+        {
+            case CellMarkState.None:
+                cover.sprite = Board[CloseCellType.Close];
+                break;
+            case CellMarkState.Question:
+                cover.sprite = Board[CloseCellType.Question];
+                break;
+            case CellMarkState.Flag:
+            default:
+                break;
+        }
     }
 
     /// <summary>
@@ -198,4 +300,35 @@ public class Cell : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// 셀을 오른쪽 클릭했을 때 실행될 함수
+    /// </summary>
+    public void CellRightPress()
+    {
+        if (!IsOpen)
+        {
+            switch (markState)
+            {
+                case CellMarkState.None:
+                    // markState가 none이면 flag가 된다.      -> 깃발 갯수가 줄어든다. 셀 이미지 변경된다.
+                    markState = CellMarkState.Flag;
+                    cover.sprite = Board[CloseCellType.Flag];
+                    onFlagUse?.Invoke();
+                    break;
+                case CellMarkState.Flag:
+                    // markState가 flag이면 question이 된다.  -> 깃발 갯수가 늘어난다. 셀 이미지 변경된다.
+                    markState = CellMarkState.Question;
+                    cover.sprite = Board[CloseCellType.Question];
+                    onFlagReturn?.Invoke();
+                    break;
+                case CellMarkState.Question:
+                    // markState가 question이면 none이 된다.  -> 셀 이미지 변경된다.
+                    markState = CellMarkState.None;
+                    cover.sprite = Board[CloseCellType.Close];
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
 }
